@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
+import psycopg2
 
 # Define the available trains and their seat counts
 available_trains = [
@@ -28,36 +29,51 @@ available_trains = [
 ]
 
 
-def show_available_seats(source, destination, date):
+def show_available_seats(train_number, source, destination, date, num_seats):
     # Filter the available trains based on the source and destination
-    available_trains_filtered = [
-        train
-        for train in available_trains
-        if train["source"] == source and train["destination"] == destination
-    ]
+    
+    conn = psycopg2.connect(
+            host="localhost",
+            database="t2",
+            user="postgres",
+            password="password"
+    )
+
+    # create a cursor object to execute SQL queries
+    cur = conn.cursor()
+
+        # execute the find_trains_btw_stations function to get available trains
+
+    cur.execute("SELECT * FROM get_min_avail_seats(%s, %s, %s, %s)", (int(train_number), int(source), int(destination), date))
+    available_trains = cur.fetchone()
+    # row = cur.fetchone()
+
+
+    # convert the result to a pandas dataframe and show it in Streamlit
+    # print(row)
+    print(available_trains)
+    print("--------------------------------")
+
+
+
+    # close the cursor and database connection
+    cur.close()
+    conn.close()
+    
 
     # Show the available trains and their seat counts
-    if len(available_trains_filtered) > 0:
-        st.write(f"Available seats from {source} to {destination} on {date}:")
-        rows = []
-        for train in available_trains_filtered:
-            row = [train["train_number"], train["name"]]
-            for seat_type, seat_count in train["seats"].items():
-                row.append(seat_count)
-            rows.append(row)
-        st.write(
-            pd.DataFrame(
-                rows, columns=["Train Number", "Name", "1AC", "2AC", "3AC", "SL", "2S"]
-            )
-        )
+    if available_trains[0] > 0:
+        st.write(f"Available seats from {source} to {destination} on {date}: {available_trains[0]}")
     else:
         st.write(f"No trains available from {source} to {destination} on {date}.")
 
 
 # Create a page to show the available seats
 st.title("View Available Seats")
+train_number = st.text_input("Enter the train number:")
 source = st.text_input("Enter the source station:")
 destination = st.text_input("Enter the destination station:")
 date = st.date_input("Enter the travel date:")
+num_seats = st.number_input("Enter the number of seats:", min_value=1, step=1)
 if st.button("Search"):
-    show_available_seats(source, destination, date.strftime("%d-%m-%Y"))
+    show_available_seats(train_number, source, destination, date, num_seats)
