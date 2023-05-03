@@ -27,7 +27,7 @@ def book_ticket(user_id, train_number, source, destination, date, num_seats):
         st.write("No seats available!")
         return
 
-
+    print("SELECT * FROM book_seat(%s, %s, %s, %s, %s, %s)", (int(user_id), int(train_number), int(source), int(destination), date, num_seats))
     cur.execute("SELECT * FROM book_seat(%s, %s, %s, %s, %s, %s)", (int(user_id), int(train_number), int(source), int(destination), date, num_seats))
     available_trains = cur.fetchone()
     # row = cur.fetchone()
@@ -41,6 +41,7 @@ def book_ticket(user_id, train_number, source, destination, date, num_seats):
 
 
     # close the cursor and database connection
+    conn.commit()
     cur.close()
     conn.close()
     
