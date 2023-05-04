@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import psycopg2
 
-psycopg2.extras.register_uuid()
 import uuid
 
 # define the cancel ticket page
