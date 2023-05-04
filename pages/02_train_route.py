@@ -1,23 +1,29 @@
 import streamlit as st
-
+import psycopg2
+import pandas as pd
 
 def show_train_route():
     # Define the train route for each train number
-    train_routes = {
-        "12345": ["Station A", "Station B", "Station C"],
-        "67890": ["Station X", "Station Y", "Station Z"],
-        "24680": ["Station P", "Station Q", "Station R", "Station S"],
-    }
 
     # Get the train number from the user
     train_number = st.text_input("Enter train number:")
 
+    conn = psycopg2.connect(
+        host="localhost",
+        database="t2",
+        user="postgres",
+        password="password"
+    )
+
+    # create a cursor object to execute SQL queries
+    cur = conn.cursor()
+
+    
+    cur.execute("SELECT * FROM train_stations where train_no=%s", (int(train_number),))
+    # train_routes = cur.fetchall()
+
+    train_routes = pd.DataFrame(cur.fetchall(), columns=["Train no", "Station Name"])
     # Show the train route if the user has entered a valid train number
-    if train_number in train_routes:
-        st.write(f"Train route for train number {train_number}:")
-        st.write("```\n" + "\n".join(train_routes[train_number]) + "\n```")
-    elif train_number:
-        st.error("Invalid train number. Please try again.")
 
 
 # Create a page to show the train route

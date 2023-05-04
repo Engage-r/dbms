@@ -1,5 +1,6 @@
 import streamlit as st
 import bcrypt
+import psycopg2
 
 st.set_page_config(
     page_title="Railway Reservation System", page_icon=":train:", layout="centered"
@@ -31,7 +32,7 @@ def login():
     st.write("Please enter your login details below.")
 
     # Get the user's email address
-    email = st.text_input("Email address")
+    email_id = st.text_input("Email address")
 
     # Get the user's password
     password = st.text_input("Password", type="password")
@@ -39,21 +40,36 @@ def login():
     # Login the user if they submit the form
     if st.button("Sign in"):
         # Open the file containing the user credentials
-        with open("users.txt", "r") as f:
-            # Loop through the lines in the file to find the user's credentials
-            for line in f:
-                # Split the line into its components
-                name, stored_email, stored_password = line.strip().split(", ")
+        conn = psycopg2.connect(
+            host="localhost",
+            database="t2",
+            user="postgres",
+            password="password"
+        )
+        
+        cur = conn.cursor()
 
-                # Check if the email and password match the stored credentials
-                if email == stored_email and bcrypt.checkpw(
-                    password.encode("utf-8"), stored_password.encode("utf-8")
-                ):
-                    st.success("You have successfully logged in!")
-                    st.session_state["user"] = "in"
-                    return
-        st.session_state["user"] = "out"
+        # Execute a SQL query to check if the username and password match a record in the database
+        cur.execute("SELECT * FROM users WHERE email_id = %s", (email_id,))
+
+        # Fetch the first row returned by the query
+        row = cur.fetchone()
+
+        # print(row)
+        # print("===============================")
+
+        if row is not None:
+            print("Login successful")
+            st.success("You have successfully logged in!")
+            st.session_state["user"] = row[0]
+            return
+
         st.error("Incorrect email address or password. Please try again.")
+        
+        st.session_state["user"] = "out"
+        # Close the cursor and database connection
+        cur.close()
+        conn.close()
 
 
 def register():
@@ -61,10 +77,15 @@ def register():
     st.write("Please enter your details below to register.")
 
     # Get the user's name
-    name = st.text_input("Name")
+    username = st.text_input("Username")
 
     # Get the user's email address
-    email = st.text_input("Email address")
+    email_id = st.text_input("Email address")
+
+    age = st.text_input("Age")
+    
+    mobile_no = st.text_input("Mobile Number")
+
 
     # Get the user's password
     password = st.text_input("Password", type="password")
@@ -78,15 +99,25 @@ def register():
         hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
         # Open the file where we'll store the user's credentials
-        with open("users.txt", "a") as f:
-            # Write the user's details to the file, including the hashed password
-            f.write(f"{name}, {email}, {hashed_password.decode('utf-8')}\n")
 
-        # Open the file where we'll store the user's type
-        with open("user_types.txt", "a") as f:
-            # Write the user's email and type to the file
-            f.write(f"{email}, {user_type}\n")
+        conn = psycopg2.connect(
+            host="localhost",
+            database="t2",
+            user="postgres",
+            password="password"
+        )
+        cur = conn.cursor()
 
+        # check if the email address already exists in the database
+        cur.execute("SELECT COUNT(*) FROM users WHERE email_id=%s", (email_id,))
+        count = cur.fetchone()[0]
+        if count > 0:
+            st.write("An account with this email address already exists.")
+        else:
+            # insert the new user's data into the database
+            cur.execute("INSERT INTO users (username, email_id, age, mobile_no) VALUES (%s, %s, %s, %s)", (username, email_id, age, mobile_no))
+            conn.commit()
+            st.write("You have successfully registered.")
         st.success("You have successfully registered!")
 
 
